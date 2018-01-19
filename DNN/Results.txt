@@ -1,0 +1,59 @@
+Net: 7:5:3
+nepochs = 800
+wait_for = 40
+sbatch = 32
+opt = Adam()
+split_factor = 0.8
+---------------------------------------
+2jets, myqqZZ, pt+eta only
+Train norm AUC: 0.87
+Test norm AUC: 0.86
+
+Djet norm AUC: 0.82
+MELA norm AUC: 0.86
+DNN norm AUC: 0.86
+
+******** ROCs from DNN *********
+VBF vs  ttZ  -- ROC AUC: 0.83
+VBF vs  ZH  -- ROC AUC: 0.93
+VBF vs  qqZZ  -- ROC AUC: 0.86
+VBF vs  WH  -- ROC AUC: 0.93
+VBF vs  ttH  -- ROC AUC: 0.92
+VBF vs  ggZZ  -- ROC AUC: 0.83
+VBF vs  HJJ  -- ROC AUC: 0.84
+
+******** ROCs from MELA *********
+VBF vs  ttZ  -- ROC AUC: 0.82
+VBF vs  ZH  -- ROC AUC: 0.89
+VBF vs  qqZZ  -- ROC AUC: 0.87
+VBF vs  WH  -- ROC AUC: 0.89
+VBF vs  ttH  -- ROC AUC: 0.88
+VBF vs  ggZZ  -- ROC AUC: 0.81
+VBF vs  HJJ  -- ROC AUC: 0.85
+
+---------------------------------------
+3rd jet, myqqZZ, pt+eta only
+Train norm AUC: 0.87
+Test norm AUC: 0.87
+
+Djet norm AUC: 0.82
+MELA norm AUC: 0.86
+DNN norm AUC: 0.87
+
+******** ROCs from DNN *********
+VBF vs  ttZ  -- ROC AUC: 0.86
+VBF vs  ZH  -- ROC AUC: 0.94
+VBF vs  qqZZ  -- ROC AUC: 0.87
+VBF vs  WH  -- ROC AUC: 0.94
+VBF vs  ttH  -- ROC AUC: 0.94
+VBF vs  ggZZ  -- ROC AUC: 0.83
+VBF vs  HJJ  -- ROC AUC: 0.85
+
+******** ROCs from MELA *********
+VBF vs  ttZ  -- ROC AUC: 0.82
+VBF vs  ZH  -- ROC AUC: 0.89
+VBF vs  qqZZ  -- ROC AUC: 0.87
+VBF vs  WH  -- ROC AUC: 0.89
+VBF vs  ttH  -- ROC AUC: 0.88
+VBF vs  ggZZ  -- ROC AUC: 0.81
+VBF vs  HJJ  -- ROC AUC: 0.85
