@@ -1,10 +1,10 @@
 import os
 import sys
 import cPickle as pickle
-from UserFunctions import formatInputs
+from UserFunctions import formatInputs, formatInputs2
 
 #loads input data
-path = '/home/micah/temp/hzz4l_histos/OrganizedSamples/'
+path = '/lustrehome/mmelodea/OrganizedSamples/'
 file_names4e = open(path+'histos4e_25ns/file_names.txt','r')
 file_names4mu = open(path+'histos4mu_25ns/file_names.txt','r')
 file_names2e2mu = open(path+'histos2e2mu_25ns/file_names.txt','r')
@@ -22,7 +22,7 @@ comparison = '>='
 njets = 2
 min4lmass = 118
 max4lmass = 130
-events = formatInputs(files_addresses, comparison, njets, min4lmass, max4lmass)
+events = formatInputs2(files_addresses, comparison, njets, min4lmass, max4lmass)
 
 keys = []
 for ik in events:
@@ -38,6 +38,6 @@ for ik in events:
     random.shuffle(events[ik])
 
 #save the dictionary
-fileout = open('hzz4l_{0}jets_m4l{1}-{2}GeV_shuffled2e2mu.pkl'.format(njets,min4lmass,max4lmass),'w')
+fileout = open('hzz4l_{0}jets_m4l{1}-{2}GeV_shuffledFS.pkl'.format(njets,min4lmass,max4lmass),'w')
 pickle.dump( events, fileout )
 fileout.close()
