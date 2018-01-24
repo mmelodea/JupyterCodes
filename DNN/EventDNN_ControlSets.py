@@ -7,9 +7,8 @@
 #set adequate environment
 import os
 import sys
-import theano
 import keras
-theano.config.gcc.cxxflags = '-march=corei7'
+#theano.config.gcc.cxxflags = '-march=corei7'
 
 
 # In[2]:
@@ -17,24 +16,23 @@ theano.config.gcc.cxxflags = '-march=corei7'
 
 #load needed things
 from keras.models import Sequential, Model
-from keras.optimizers import SGD, Adam, Adagrad, Adadelta, RMSprop, Nadam, AMSgrad
+from keras.optimizers import SGD, Adam, Adagrad, Adadelta, RMSprop
 from keras.layers import Input, Activation, Dense
-from keras.utils import np_utils
-from keras.wrappers.scikit_learn import KerasClassifier
+#from keras.utils import np_utils
+#from keras.wrappers.scikit_learn import KerasClassifier
 from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateScheduler
-from keras import backend as K
 # Run classifier with cross-validation and plot ROC curves
-from itertools import cycle
-from sklearn.metrics import roc_curve, auc
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import LabelEncoder
-from scipy import interp
+#from itertools import cycle
+#from sklearn.metrics import roc_curve, auc
+#from sklearn.preprocessing import StandardScaler
+#from sklearn.preprocessing import LabelEncoder
+#from scipy import interp
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as pyp
-import itertools
+#import matplotlib as mpl
+#import matplotlib.pyplot as pyp
+#import itertools
 import math
-import ROOT
+#import ROOT
 import cPickle as pickle
 from UserFunctions import *
 
@@ -47,7 +45,6 @@ np.random.seed(seed)
 
 
 #load events
-print "Loading events..."
 comparison = '>='
 njets = 2
 min4lmass = 118
@@ -61,8 +58,8 @@ filein.close()
 # In[4]:
 
 
-del events['myqqZZ']
-del events['ggH']
+#del events['myqqZZ']
+#del events['ggH']
 
 #shows events and statistics
 class_weight = {}
@@ -72,7 +69,7 @@ for ik in events:
     sumw = 0
     nevents = len(events[ik])
     for i in range(len(events[ik])):
-        sumw += events[ik][i][2]
+        sumw += events[ik][i][0]
 
     print '%s events: %i, normalized: %.4f' % (ik,nevents,sumw)
     class_weight[ik] = sumw
@@ -88,6 +85,8 @@ class_weight['myqqZZ'] = class_weight['qqZZ']
 vhcw = class_weight['WH']+class_weight['ZH']
 class_weight['WH'] = vhcw
 class_weight['ZH'] = vhcw
+
+
 
 
 # In[6]:
@@ -119,143 +118,64 @@ full_event_train, full_event_test, full_event_data = splitInputs(events, split_f
 # In[8]:
 
 
-#to select how many jets to use;  eg. 7 = 4leptons + 3jets
-nparticles = 7
-features = {
-    'pt' : None,
-    'eta': None,
-    'phi': None
-    #'e'  : None
-}
-nfeatures = len(features)
+#just to organize index of important quantities
+class_weight_index = 1
+weight_index = 2
+djet_index   = 3
+mela_index   = 4
+
+#prepare train set
+X = {}
+Y = {}
+X['train'], Y['train'], Ydjet_train, Ymela_train, weights_train_set, scales_train_set = prepareSet(full_event_train, djet_index, mela_index, weight_index, class_weight_index)
 
 
 # In[9]:
 
 
-#just to organize index of important quantities
-djet_index   = 1
-mela_index   = 2
-weight_index = 3
-class_weight_index = 4
-
-#prepare train set
-X = {}
-Y = {}
-X['train'], Y['train'], Ydjet_train, Ymela_train, weights_train_set, scales_train_set = prepareSet(full_event_train, nparticles, nfeatures, djet_index, mela_index, weight_index, class_weight_index)
+#prepare test set
+X['test'], Y['test'], Ydjet_test, Ymela_test, weights_test_set, scales_test_set = prepareSet(full_event_test, djet_index, mela_index, weight_index, class_weight_index)
 
 
 # In[10]:
 
 
-#prepare test set
-X['test'], Y['test'], Ydjet_test, Ymela_test, weights_test_set, scales_test_set = prepareSet(full_event_test, nparticles, nfeatures, djet_index, mela_index, weight_index, class_weight_index)
-
-
-
-
-# In[12]:
-
-
 #parameters for training
-nepochs = 400
-wait_for = 100
-sbatch = 128
+nepochs = 20
+wait_for = 60
+sbatch = 32
 opt = Adam()
-#opt = SGD(lr=0.001, momentum=0.3, nesterov=True)
-#opt = Nadam()
-#opt = AMSgrad()
-#opt = Adadelta()
-
-# DNN Model
-from keras.layers import Dropout
-from keras.layers import ELU
-
-nn15_model = Sequential()
-#shallow network
-nn15_model.add(Dense(15, input_shape=(nparticles*nfeatures,), activation='relu'))
-nn15_model.add(Dense(1, activation='sigmoid'))
-nn15_model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
-print nn15_model.summary()
-
-dnn_model = Sequential()
-dnn_model.add(Dense(9, input_shape=(nparticles*nfeatures,), activation='relu'))
-dnn_model.add(Dense(5, activation='relu'))
-dnn_model.add(Dense(3, activation='relu'))
-
-dnn_model.add(Dense(1, activation='sigmoid'))
-dnn_model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
-#dnn_model.compile(loss='mse', optimizer=opt, metrics=['accuracy'])
-print dnn_model.summary()
+#opt = SGD(lr=0.01, decay=1e-6, momentum=0.3, nesterov=True)
 
 early_stopping = EarlyStopping(monitor='val_loss', patience=wait_for)
-filepath="weights_best.hdf5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=0, save_best_only=True, mode='auto')
 
 
-# In[13]:
+# In[15]:
 
 
-# updatable plot
-class Tscheduler(keras.callbacks.Callback):
-    def on_train_begin(self, logs={}):
-        self.i = 0
-        self.x = []
-        self.losses = []
-        self.val_losses = []
-        self.accs = []
-        self.val_accs = []
-        self.logs = []
-        self.trocs = []
-        self.vrocs = []
+#DNN network
+print "---------- DNN Topology --------- "
+dnn_model = Sequential()
+dnn_model.add(Dense(7, input_shape=(len(X['train'][0]),), activation='relu', kernel_initializer='random_uniform'))
+dnn_model.add(Dense(5, activation='relu', kernel_initializer='random_uniform'))    
+dnn_model.add(Dense(3, activation='relu', kernel_initializer='random_uniform'))    
+#dnn_model.add(Dense(6, activation='relu', kernel_initializer='random_uniform'))
+#dnn_model.add(Dense(4, activation='relu', kernel_initializer='random_uniform'))
+dnn_model.add(Dense(1, activation='sigmoid', kernel_initializer='random_uniform'))    
+dnn_model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
+print dnn_model.summary()
 
-    def on_epoch_end(self, epoch, logs={}):
-        self.logs.append(logs)
-        self.x.append(self.i)
-        self.losses.append(logs.get('loss'))
-        self.val_losses.append(logs.get('val_loss'))
-        self.accs.append(logs.get('acc'))
-        self.val_accs.append(logs.get('val_acc'))
-        Y_score = dnn_model.predict(X['train'])
-        fpr, tpr, thresholds = roc_curve(Y['train'], Y_score, sample_weight=weights_train_set)
-        roc_auc = auc(fpr, tpr, reorder=True)
-        self.trocs.append(roc_auc)
-        Y_score = dnn_model.predict(X['test'])
-        fpr, tpr, thresholds = roc_curve(Y['test'], Y_score, sample_weight=weights_test_set)
-        roc_auc = auc(fpr, tpr, reorder=True)
-        self.vrocs.append(roc_auc)
-        self.i += 1
-        
-        #c_lrate = K.eval(self.model.optimizer.lr)
-        #changing lr based on loss
-        if(self.i > 100):
-	  n_lrate = 0.001 - 0.001*(self.i/float(nepochs))
-          K.set_value(self.model.optimizer.lr, n_lrate)
-        
-        print "epoch: {0}, tloss: {1:.3f}, vloss: {2:.3f}, troc: {3:.3f}, vroc: {4:.3f}, lr: {5}".format(self.i, self.losses[len(self.losses)-1], self.val_losses[len(self.val_losses)-1], self.trocs[len(self.trocs)-1], self.vrocs[len(self.vrocs)-1], K.eval(self.model.optimizer.lr))
 
-        
-        #stop training if training and testing Loss get too away
-        #if(epoch > 50):
-        #    train_sum = 0
-        #    val_sum = 0
-        #    for i in range(30):
-        #        train_sum += self.losses[len(self.losses)-1-i]/6.
-        #        val_sum += self.val_losses[len(self.val_losses)-1-i]/6.
-        #    if(train_sum-val_sum < -0.02):
-        #        self.model.stop_training = True
-        #        print "Stoping training!"
-                
-            
-Tschedule = Tscheduler()
 
 
 # In[ ]:
 
 
-#train the network
-#dnn_model.load_weights("weights_best2.hdf5")
-history = dnn_model.fit(X['train'],
+#filepath1="weights_dnn.hdf5"
+#checkpoint1 = ModelCheckpoint(filepath1, monitor='val_loss', verbose=0, save_best_only=True, mode='auto')
+
+#train the DNN
+history1 = dnn_model.fit(X['train'],
                         Y['train'], 
                         sample_weight=scales_train_set,
                         #sample_weight=weights_train_set,
@@ -266,24 +186,27 @@ history = dnn_model.fit(X['train'],
                                         ), 
                         epochs=nepochs,
                         batch_size=sbatch, 
-                        verbose=0,
-                        callbacks=[checkpoint,early_stopping,Tschedule]
+                        verbose=2
+                        #,callbacks=[checkpoint1,early_stopping]
                        )
-			
-			
+
+
+# In[ ]:
+
+
 # load final best weights
-dnn_model.load_weights("weights_best.hdf5")
-			
-			
-fpr, tpr, thresholds = roc_curve(Y['test'], Ydjet_test, sample_weight=weights_test_set)
-roc_auc = auc(fpr, tpr,reorder=True)
-print 'Djet test AUC = %0.3f' % roc_auc
+#dnn_model.load_weights(filepath1)
 
-fpr, tpr, thresholds = roc_curve(Y['test'], Ymela_test, sample_weight=weights_test_set)
-roc_auc = auc(fpr, tpr,reorder=True)
-print 'MELA test AUC = %0.3f' % roc_auc
 
-Y_score = dnn_model.predict(X['test'])
-fpr, tpr, thresholds = roc_curve(Y['test'], Y_score, sample_weight=weights_test_set)
-roc_auc = auc(fpr, tpr,reorder=True)
-print 'DNN test AUC = %0.3f' % roc_auc
+
+#train set normalized roc
+#Y_score = dnn_model.predict(X['train'])
+#fpr, tpr, thresholds = roc_curve(Y['train'], Y_score, sample_weight=weights_train_set)
+#roc_auc = auc(fpr, tpr,reorder=True)
+#print "DNN train AUC = %0.3f" % roc_auc
+
+#test set unormalized roc
+#Y_score = dnn_model.predict(X['test'])
+#fpr, tpr, thresholds = roc_curve(Y['test'], Y_score, sample_weight=weights_test_set)
+#roc_auc = auc(fpr, tpr,reorder=True)
+#print "DNN test AUC = %0.3f" % roc_auc

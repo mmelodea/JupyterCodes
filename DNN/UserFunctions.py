@@ -345,7 +345,7 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
         #variables.append(event_set[iev][32])#l4pdgid
         #variables.append(event_set[iev][33])#isomax
         #variables.append(event_set[iev][34])#sipmax
-        variables.append(event_set[iev][35])#mz1
+        #variables.append(event_set[iev][35])#mz1
         #variables.append(event_set[iev][36])#mz2
         #variables.append(event_set[iev][37])#cosO*
         #variables.append(event_set[iev][38])#cosO1
@@ -366,10 +366,18 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
         variables.append(event_set[iev][53])#j2eta
         variables.append(event_set[iev][54])#j2phi
         #variables.append(event_set[iev][55])#j2et
-        variables.append(event_set[iev][56])#j3pt
-        variables.append(event_set[iev][57])#j3eta
-        variables.append(event_set[iev][58])#j3phi
-        #variables.append(event_set[iev][59])#j3et
+
+        if(event_set[iev][56] == -999):
+            variables.append(0)#j3pt
+            variables.append(0)#j3eta
+            variables.append(0)#j3phi
+            #variables.append(event_set[iev][59])#j3et
+        else:
+            variables.append(event_set[iev][56])#j3pt
+            variables.append(event_set[iev][57])#j3eta
+            variables.append(event_set[iev][58])#j3phi
+            #variables.append(event_set[iev][59])#j3et
+            
         #variables.append(event_set[iev][60])#pfmet
         #variables.append(event_set[iev][61])#genmet doesn't exist for data, so we must not use it
         #variables.append(event_set[iev][62])#mt
