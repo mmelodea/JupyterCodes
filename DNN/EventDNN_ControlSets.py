@@ -143,7 +143,7 @@ X['test'], Y['test'], Ydjet_test, Ymela_test, weights_test_set, scales_test_set 
 #parameters for training
 nepochs = 20
 wait_for = 60
-sbatch = 32
+sbatch = 128
 opt = Adam()
 #opt = SGD(lr=0.01, decay=1e-6, momentum=0.3, nesterov=True)
 
