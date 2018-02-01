@@ -56,6 +56,7 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
     import numpy as np
     from math import cos, sin, cosh, sinh, fabs, pow, sqrt
     
+    default_value = 0
     nevents = len(event_set)
     inputs = []
     labels = []
@@ -73,82 +74,83 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
         weights.append( event_set[iev][weight_index] )
 
         variables = []
-        variables.append(event_set[iev][5])#l1pt
-        variables.append(event_set[iev][6])#l1eta
-        variables.append(event_set[iev][7])#l1phi
-        #variables.append(event_set[iev][8])#l1ch
-        #variables.append(event_set[iev][9])#l1pfx
-        #variables.append(event_set[iev][10])#l1sip
-        #variables.append(event_set[iev][11])#l1pdgid
-        variables.append(event_set[iev][12])#l2pt
-        variables.append(event_set[iev][13])#l2eta
-        variables.append(event_set[iev][14])#l2phi
-        #variables.append(event_set[iev][15])#l2ch
-        #variables.append(event_set[iev][16])#l2pfx
-        #variables.append(event_set[iev][17])#l2sip
-        #variables.append(event_set[iev][18])#l2pdgid
-        variables.append(event_set[iev][19])#l3pt
-        variables.append(event_set[iev][20])#l3eta
-        variables.append(event_set[iev][21])#l3phi
-        #variables.append(event_set[iev][22])#l3ch
-        #variables.append(event_set[iev][23])#l3pfx
-        #variables.append(event_set[iev][24])#l3sip
-        #variables.append(event_set[iev][25])#l3pdgid
-        variables.append(event_set[iev][26])#l4pt
-        variables.append(event_set[iev][27])#l4eta
-        variables.append(event_set[iev][28])#l4phi
-        #variables.append(event_set[iev][29])#l4ch
-        #variables.append(event_set[iev][30])#l4pfx
-        #variables.append(event_set[iev][31])#l4sip
-        #variables.append(event_set[iev][32])#l4pdgid
-        #variables.append(event_set[iev][33])#isomax
-        #variables.append(event_set[iev][34])#sipmax
-        #variables.append(event_set[iev][35])#mz1
-        #variables.append(event_set[iev][36])#mz2
-        #variables.append(event_set[iev][37])#cosO*
-        #variables.append(event_set[iev][38])#cosO1
-        #variables.append(event_set[iev][39])#cosO2
-        #variables.append(event_set[iev][40])#phi
-        #variables.append(event_set[iev][41])#phi*_1
-        #variables.append(event_set[iev][42])#pt4l
-        #variables.append(event_set[iev][43])#eta4l
-        #variables.append(event_set[iev][44])#m4l
-        #variables.append(event_set[iev][45])#njets
-        #variables.append(event_set[iev][46])#detajj
-        #variables.append(event_set[iev][47])#mjj
-        variables.append(event_set[iev][48])#j1pt
-        variables.append(event_set[iev][49])#j1eta
-        variables.append(event_set[iev][50])#j1phi
-        #variables.append(event_set[iev][51])#j1et
-        variables.append(event_set[iev][52])#j2pt
-        variables.append(event_set[iev][53])#j2eta
-        variables.append(event_set[iev][54])#j2phi
-        #variables.append(event_set[iev][55])#j2et
+        variables.append( event_set[iev][5] )#l1pt
+        variables.append( event_set[iev][6] )#l1eta
+        variables.append( event_set[iev][7] )#l1phi
+        #variables.append( event_set[iev][8] )#l1ch
+        #variables.append( event_set[iev][9] )#l1pfx
+        #variables.append( event_set[iev][10] )#l1sip
+        #variables.append( event_set[iev][11] )#l1pdgid
+        variables.append( event_set[iev][12] )#l2pt
+        variables.append( event_set[iev][13] )#l2eta
+        variables.append( event_set[iev][14] )#l2phi
+        #variables.append( event_set[iev][15] )#l2ch
+        #variables.append( event_set[iev][16] )#l2pfx
+        #variables.append( event_set[iev][17] )#l2sip
+        #variables.append( event_set[iev][18] )#l2pdgid
+        variables.append( event_set[iev][19] )#l3pt
+        variables.append( event_set[iev][20] )#l3eta
+        variables.append( event_set[iev][21] )#l3phi
+        #variables.append( event_set[iev][22] )#l3ch
+        #variables.append( event_set[iev][23] )#l3pfx
+        #variables.append( event_set[iev][24] )#l3sip
+        #variables.append( event_set[iev][25] )#l3pdgid
+        variables.append( event_set[iev][26] )#l4pt
+        variables.append( event_set[iev][27] )#l4eta
+        variables.append( event_set[iev][28] )#l4phi
+        #variables.append( event_set[iev][29] )#l4ch
+        #variables.append( event_set[iev][30] )#l4pfx
+        #variables.append( event_set[iev][31] )#l4sip
+        #variables.append( event_set[iev][32] )#l4pdgid
+        #variables.append( event_set[iev][33] )#isomax
+        #variables.append( event_set[iev][34] )#sipmax
+        #variables.append( event_set[iev][35] )#mz1
+        #variables.append( event_set[iev][36] )#mz2
+        #variables.append( event_set[iev][37] )#cosO*
+        #variables.append( event_set[iev][38] )#cosO_1
+        #variables.append( event_set[iev][39] )#cosO_2
+        #variables.append( event_set[iev][40] )#phi
+        #variables.append( event_set[iev][41] )#phi*_1
+        #variables.append( event_set[iev][42] )#pt4l
+        #variables.append( event_set[iev][43] )#eta4l
+        #variables.append( event_set[iev][44] )#m4l
+        #variables.append( event_set[iev][45] )#njets
+        #variables.append( event_set[iev][46] )#detajj
+        #variables.append( event_set[iev][47] )#mjj
+        for ijet in range(3):
+            rep = 313*ijet
+            variables.append( event_set[iev][48+rep] )#jetpt (48, 361, 674)
+            variables.append( event_set[iev][49+rep] )#jeteta
+            variables.append( event_set[iev][50+rep] )#jetphi
+            #variables.append( event_set[iev][51+rep] )#jeteT
+            variables.append( event_set[iev][52+rep] )#subjetness
+            variables.append( event_set[iev][53+rep] )#ptD
+            #variables.append( event_set[iev][54+rep] )#photonEnergy
+            #variables.append( event_set[iev][55+rep] )#electronEnergy
+            #variables.append( event_set[iev][56+rep] )#muonEnergy
+            #variables.append( event_set[iev][57+rep] )#chargedEmEnergy
+            #variables.append( event_set[iev][58+rep] )#neutralEmEnergy
+            #variables.append( event_set[iev][59+rep] )#chargedHadronEnergy
+            #variables.append( event_set[iev][60+rep] )#neutralHadronEnergy
+            #------------------------------------------------------------#
+            #for isjet in range(100):
+                 #rep2 = 3*isjet
+                 #variables.append( event_set[iev][61+rep+rep2] )#jetcomponentpt
+                 #variables.append( event_set[iev][62+rep+rep2] )#jetcomponenteta
+                 #variables.append( event_set[iev][63+rep+rep2] )#jetcomponentphi
 
-        if(event_set[iev][56] == -999):
-            variables.append(0)#j3pt
-            variables.append(0)#j3eta
-            variables.append(0)#j3phi
-            #variables.append(0)#j3et
-        else:
-            variables.append(event_set[iev][56])#j3pt
-            variables.append(event_set[iev][57])#j3eta
-            variables.append(event_set[iev][58])#j3phi
-            #variables.append(event_set[iev][59])#j3et
-            
-        #variables.append(event_set[iev][60])#pfmet
-        #variables.append(event_set[iev][61])#genmet doesn't exist for data, so we must not use it
-        #variables.append(event_set[iev][62])#mt
-        #variables.append(event_set[iev][63])#dphi
-        #variables.append(event_set[iev][64])#nbjets        
+        #variables.append( event_set[iev][337] )
+        #variables.append( event_set[iev][338] )
+        #variables.append( event_set[iev][339] )
+        #variables.append( event_set[iev][340] )
+        #variables.append( event_set[iev][341] )
         
         inputs.append(variables)        
 
         if(event_set[iev][0] == 'VBF'):
             siev += 1
             labels.append(1)
-
-        if(event_set[iev][0] != 'VBF' and event_set[iev][0] != 'Data'):
+        else:
             biev += 1
             labels.append(0)
             
