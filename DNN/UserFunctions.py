@@ -165,6 +165,33 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
 
 
 
+#prepare sets for training
+def prepareJetComponents(event_set):
+    import numpy as np
+    
+    prepared_set = {}
+    for ik in event_set:
+        prepared_set[ik] = []
+        for iev in range(len(event_set[ik])):
+            jets = []
+            for ijet in range(3):
+                rep = 313*ijet
+                jet_eta = []
+                jet_phi = []
+                jet_pt = []
+                for isjet in range(100):
+                    rep2 = 3*isjet
+                    if(isjet > event_set[ik][iev][50+rep]):#subjetness
+                        break
+                    jet_pt.append( event_set[ik][iev][59+rep+rep2] )#jetcomponentpt
+                    jet_eta.append( event_set[ik][iev][60+rep+rep2] )#jetcomponenteta
+                    jet_phi.append( event_set[ik][iev][61+rep+rep2] )#jetcomponentphi
+                jets.append([jet_eta, jet_phi, jet_pt])
+            prepared_set[ik].append(jets)
+                
+    return prepared_set
+
+
 
 #boost particles
 def boostToHiggs(lepsp4, higgsp4):

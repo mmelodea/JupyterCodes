@@ -135,7 +135,7 @@ for ifile in range(len(files_addresses)):
                 event.append( evt.f_jet_neutralEmEnergy[ijet] )#56
                 event.append( evt.f_jet_chargedHadronEnergy[ijet] )#57
                 event.append( evt.f_jet_neutralHadronEnergy[ijet] )#58
-                for isjet in range(ijet*100, (ijet+1)*100):#59-159
+                for isjet in range(ijet*100, (ijet+1)*100):#59-359
                     if(evt.f_jet_component_pt[isjet] != -999):
                         event.append( evt.f_jet_component_pt[isjet] )  
                         event.append( evt.f_jet_component_eta[isjet] )  
