@@ -1,6 +1,5 @@
 #organize events and splits data in train and test set
 def splitInputs(events, train_fraction, class_weight):
-    import ROOT
     import random
     
     full_event_train = []
@@ -117,14 +116,14 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
         #variables.append( event_set[iev][45] )#njets
         #variables.append( event_set[iev][46] )#detajj
         #variables.append( event_set[iev][47] )#mjj
-        for ijet in range(3):
+        for ijet in range(2):
             rep = 313*ijet
             variables.append( event_set[iev][48+rep] )#jetpt (48, 361, 674)
             variables.append( event_set[iev][49+rep] )#jeteta
             variables.append( event_set[iev][50+rep] )#jetphi
             #variables.append( event_set[iev][51+rep] )#jeteT
-            variables.append( event_set[iev][52+rep] )#subjetness
-            variables.append( event_set[iev][53+rep] )#ptD
+            #variables.append( event_set[iev][52+rep] )#subjetness
+            #variables.append( event_set[iev][53+rep] )#ptD
             #variables.append( event_set[iev][54+rep] )#photonEnergy
             #variables.append( event_set[iev][55+rep] )#electronEnergy
             #variables.append( event_set[iev][56+rep] )#muonEnergy
@@ -134,10 +133,10 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
             #variables.append( event_set[iev][60+rep] )#neutralHadronEnergy
             #------------------------------------------------------------#
             #for isjet in range(100):
-                 #rep2 = 3*isjet
-                 #variables.append( event_set[iev][61+rep+rep2] )#jetcomponentpt
-                 #variables.append( event_set[iev][62+rep+rep2] )#jetcomponenteta
-                 #variables.append( event_set[iev][63+rep+rep2] )#jetcomponentphi
+                #rep2 = 3*isjet
+                #variables.append( event_set[iev][61+rep+rep2] )#jetcomponentpt
+                #variables.append( event_set[iev][62+rep+rep2] )#jetcomponenteta
+                #variables.append( event_set[iev][63+rep+rep2] )#jetcomponentphi
 
         #variables.append( event_set[iev][337] )
         #variables.append( event_set[iev][338] )
@@ -170,17 +169,24 @@ def prepareJetComponents(event_set):
     import numpy as np
     
     prepared_set = {}
+    scales = {}
     for ik in event_set:
+        sum_weight = 0
         prepared_set[ik] = []
         for iev in range(len(event_set[ik])):
+            sum_weight += event_set[ik][iev][0]#f_weight
             jets = []
             for ijet in range(3):
                 rep = 313*ijet
                 jet_eta = []
                 jet_phi = []
                 jet_pt = []
+                jet = []
+                if(event_set[ik][iev][43] == 2 and ijet == 2):#f_njets_pass
+                    break
                 for isjet in range(100):
                     rep2 = 3*isjet
+                    #uncomment for jet image in CNN
                     if(isjet > event_set[ik][iev][50+rep]):#subjetness
                         break
                     jet_pt.append( event_set[ik][iev][59+rep+rep2] )#jetcomponentpt
@@ -188,8 +194,14 @@ def prepareJetComponents(event_set):
                     jet_phi.append( event_set[ik][iev][61+rep+rep2] )#jetcomponentphi
                 jets.append([jet_eta, jet_phi, jet_pt])
             prepared_set[ik].append(jets)
+                    #uncomment for jet classification
+                    #jet.append( event_set[ik][iev][59+rep+rep2] )#jetcomponentpt
+                    #jet.append( event_set[ik][iev][60+rep+rep2] )#jetcomponenteta
+                    #jet.append( event_set[ik][iev][61+rep+rep2] )#jetcomponentphi
+                #prepared_set[ik].append(jet)
+        scales[ik] = sum_weight
                 
-    return prepared_set
+    return prepared_set, scales
 
 
 
