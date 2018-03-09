@@ -1,62 +1,50 @@
-#organize events and splits data in train and test set
-def splitInputs(events, train_fraction, class_weight):
+#organize events and splits data in train, test and real data sets
+def splitInputs(events, train_fraction):
     import random
     
-    full_event_train = []
-    full_event_test = []
-    full_event_data = []    
+    full_event_train = {}
+    full_event_test = {}
+    full_event_data = {}    
+    ntrain = 0
+    ntest = 0
+    ndata = 0
         
     for ik in events:
         if(ik == 'Data'):
-                for iev in range(len(events[ik])):
-                    variables = []
-                    variables.append(ik)
-                    variables.append( class_weight[ik] )
-                    for ivar in range(len(events[ik][iev])):
-                        variables.append( events[ik][iev][ivar] )
-                    full_event_data.append( variables )
+            full_event_data = events[ik]
+            ndata = len(events[ik]['mc'])
                     
         else:
-                for iev in range(len(events[ik])):
-                    if(iev < int(len(events[ik])*train_fraction)):
-                        variables = []
-                        variables.append(ik)
-                        variables.append( class_weight[ik] )
-                        for ivar in range(len(events[ik][iev])):
-                            variables.append( events[ik][iev][ivar] )
-                        full_event_train.append( variables )
-                        
+            full_event_train[ik] = {}
+            full_event_test[ik] = {}
+            nevents = len(events[ik]['mc'])
+            for ivar in events[ik]:
+                full_event_train[ik][ivar] = []
+                full_event_test[ik][ivar] = []
+                for iev in range(len(events[ik][ivar])):
+                    if(iev < int(nevents*train_fraction)):
+                        full_event_train[ik][ivar].append( events[ik][ivar][iev] )
+                        if(ivar == 'mc'): #to count just once
+                            ntrain += 1
                     else:
-                        #my private qqZZ sample it's not used in testing
-                        if(ik == 'myqqZZ'):
-                            continue
-                        variables = []
-                        variables.append(ik)
-                        variables.append( class_weight[ik] )
-                        for ivar in range(len(events[ik][iev])):
-                            variables.append( events[ik][iev][ivar] )
-                        full_event_test.append( variables )
+                        full_event_test[ik][ivar].append( events[ik][ivar][iev] )
+                        if(ivar == 'mc'): #to count just once
+                            ntest += 1
             
-    print 'Train set size: %i' % len(full_event_train)
-    print 'Test set size: %i' % len(full_event_test)
-    print 'Data set size: %i' % len(full_event_data)
-    #shuffles events
-    random.seed(6)
-    random.shuffle(full_event_train)
-    random.seed(93)
-    random.shuffle(full_event_test)
+    print 'Train set size: %i' % ntrain
+    print 'Test set size: %i' % ntest
+    print 'Data set size: %i' % ndata
     
     return full_event_train, full_event_test, full_event_data
 
 
 
 #prepare sets for training
-def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_index):
+def prepareSet(event_set, use_vars):
     import numpy as np
     from math import cos, sin, cosh, sinh, fabs, pow, sqrt
     
     default_value = 0
-    nevents = len(event_set)
     inputs = []
     labels = []
     weights = []        
@@ -66,96 +54,36 @@ def prepareSet(event_set, djet_index, mela_index, weight_index, class_weight_ind
     
     siev = 0
     biev = 0
-    for iev in range(nevents):
-        djet.append( event_set[iev][djet_index] )
-        mela.append( event_set[iev][mela_index] )
-        scales.append( event_set[iev][class_weight_index])
-        weights.append( event_set[iev][weight_index] )
+    for ik in event_set:
+        for iev in range(len(event_set[ik]['mc'])):
+            #stores standard variables
+            djet.append( event_set[ik]['Djet'][iev] )
+            mela.append( event_set[ik]['DjetVAJHU'][iev] )
+            scales.append( event_set[ik]['mc_sumweight'][iev] )
+            weights.append( event_set[ik]['event_weight'][iev] )
+            
+            #defines the event label
+            if(ik == 'VBF'):
+                siev += 1
+                labels.append(1)#signal
+            else:
+                biev += 1
+                labels.append(0)#background
 
-        variables = []
-        variables.append( event_set[iev][5] )#l1pt
-        variables.append( event_set[iev][6] )#l1eta
-        variables.append( event_set[iev][7] )#l1phi
-        #variables.append( event_set[iev][8] )#l1ch
-        #variables.append( event_set[iev][9] )#l1pfx
-        #variables.append( event_set[iev][10] )#l1sip
-        #variables.append( event_set[iev][11] )#l1pdgid
-        variables.append( event_set[iev][12] )#l2pt
-        variables.append( event_set[iev][13] )#l2eta
-        variables.append( event_set[iev][14] )#l2phi
-        #variables.append( event_set[iev][15] )#l2ch
-        #variables.append( event_set[iev][16] )#l2pfx
-        #variables.append( event_set[iev][17] )#l2sip
-        #variables.append( event_set[iev][18] )#l2pdgid
-        variables.append( event_set[iev][19] )#l3pt
-        variables.append( event_set[iev][20] )#l3eta
-        variables.append( event_set[iev][21] )#l3phi
-        #variables.append( event_set[iev][22] )#l3ch
-        #variables.append( event_set[iev][23] )#l3pfx
-        #variables.append( event_set[iev][24] )#l3sip
-        #variables.append( event_set[iev][25] )#l3pdgid
-        variables.append( event_set[iev][26] )#l4pt
-        variables.append( event_set[iev][27] )#l4eta
-        variables.append( event_set[iev][28] )#l4phi
-        #variables.append( event_set[iev][29] )#l4ch
-        #variables.append( event_set[iev][30] )#l4pfx
-        #variables.append( event_set[iev][31] )#l4sip
-        #variables.append( event_set[iev][32] )#l4pdgid
-        #variables.append( event_set[iev][33] )#isomax
-        #variables.append( event_set[iev][34] )#sipmax
-        #variables.append( event_set[iev][35] )#mz1
-        #variables.append( event_set[iev][36] )#mz2
-        #variables.append( event_set[iev][37] )#cosO*
-        #variables.append( event_set[iev][38] )#cosO_1
-        #variables.append( event_set[iev][39] )#cosO_2
-        #variables.append( event_set[iev][40] )#phi
-        #variables.append( event_set[iev][41] )#phi*_1
-        #variables.append( event_set[iev][42] )#pt4l
-        #variables.append( event_set[iev][43] )#eta4l
-        #variables.append( event_set[iev][44] )#m4l
-        #variables.append( event_set[iev][45] )#njets
-        #variables.append( event_set[iev][46] )#detajj
-        #variables.append( event_set[iev][47] )#mjj
-        for ijet in range(2):
-            rep = 313*ijet
-            variables.append( event_set[iev][48+rep] )#jetpt (48, 361, 674)
-            variables.append( event_set[iev][49+rep] )#jeteta
-            variables.append( event_set[iev][50+rep] )#jetphi
-            #variables.append( event_set[iev][51+rep] )#jeteT
-            #variables.append( event_set[iev][52+rep] )#subjetness
-            #variables.append( event_set[iev][53+rep] )#ptD
-            #variables.append( event_set[iev][54+rep] )#photonEnergy
-            #variables.append( event_set[iev][55+rep] )#electronEnergy
-            #variables.append( event_set[iev][56+rep] )#muonEnergy
-            #variables.append( event_set[iev][57+rep] )#chargedEmEnergy
-            #variables.append( event_set[iev][58+rep] )#neutralEmEnergy
-            #variables.append( event_set[iev][59+rep] )#chargedHadronEnergy
-            #variables.append( event_set[iev][60+rep] )#neutralHadronEnergy
-            #------------------------------------------------------------#
-            #for isjet in range(100):
-                #rep2 = 3*isjet
-                #variables.append( event_set[iev][61+rep+rep2] )#jetcomponentpt
-                #variables.append( event_set[iev][62+rep+rep2] )#jetcomponenteta
-                #variables.append( event_set[iev][63+rep+rep2] )#jetcomponentphi
-
-        #variables.append( event_set[iev][337] )
-        #variables.append( event_set[iev][338] )
-        #variables.append( event_set[iev][339] )
-        #variables.append( event_set[iev][340] )
-        #variables.append( event_set[iev][341] )
-        
-        inputs.append(variables)        
-
-        if(event_set[iev][0] == 'VBF'):
-            siev += 1
-            labels.append(1)
-        else:
-            biev += 1
-            labels.append(0)
+            #defines the vector of inputs to feed network                
+            variables = []
+            for ivar in use_vars:
+                variables.append( event_set[ik][ivar][iev] )
+                #sanity check.. make sure no pedestal values are kept
+                if( event_set[ik][ivar][iev] == -999 ):
+                    variables.append( default_value )
+            inputs.append(variables)        
             
                 
     print 'siev: %i' % siev
     print 'biev: %i' % biev
+    
+    #converts to numpy array format (needed for Keras)
     ainputs = np.asarray(inputs)
     alabels = np.asarray(labels)
     aweights = np.asarray(weights)
