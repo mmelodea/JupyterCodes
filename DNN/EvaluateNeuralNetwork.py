@@ -596,9 +596,9 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
 
 def main(options):
   #Setting defeult options in case omitted
-  if(options.resultsFolder == None):
-    options.resultsFolder = 'results'
-  if(options.useVars == None):
+  if(options.resultsfolder == None):
+    options.resultsfolder = 'results'
+  if(options.nninputs == None):
     raise ValueError('Variables to be used not informed! Please state them!')
   if(options.preproc == None):
     options.preproc = ['none']
@@ -606,10 +606,10 @@ def main(options):
     options.preproc = [10]  
   if(options.neuron == None):
     options.neuron = ['relu']
-  if(options.optimizer == None):
-    options.optimizer = ['adam']
-  if(options.scaleTrain == None):
-    options.scaleTrain = ['none']
+  if(options.minimizer == None):
+    options.minimizer = ['adam']
+  if(options.scaletrain == None):
+    options.scaletrain = ['none']
 
   print '----- CONFIGURATION TO BE USED ------'
   print 'infile: ', options.infile
@@ -624,7 +624,7 @@ def main(options):
   print 'nepochs: ', options.nepochs
   print 'patience: ', options.patience
   print 'batchsize: ', options.batchsize
-  print 'optimizer: ', options.optimizer
+  print 'minimizer: ', options.minimizer
   print 'scaletrain: ', options.scaletrain
   print 'nooutliers: ', options.nooutliers
 
@@ -644,7 +644,7 @@ def main(options):
 		     options.nepochs,
 		     options.patience,
 		     options.batchsize,
-		     options.optimizer,
+		     options.minimizer,
 		     options.scaletrain,
                      options.nooutliers)
   
@@ -670,7 +670,7 @@ if __name__ == '__main__':
  parser.add_argument("--nepochs", type=int, default=100, help="Number of epochs to train")
  parser.add_argument("--patience", type=int, default=50, help="Number of epochs to wait without improvement before stop training")
  parser.add_argument("--batchsize", type=int, default=32, help="Size of the batch to be used in each update")
- parser.add_argument("--optimizer", action="append", help="Optimizer: sgd, adam, adagrad, adadelta, rmsprop")
+ parser.add_argument("--minimizer", action="append", help="Minimizer: sgd, adam, adagrad, adadelta, rmsprop")
  parser.add_argument("--scaletrain", action="append", help="Type of scaling to be used into the training: none, mc_weight (XS) or event_weight (individual weight)")
  parser.add_argument("--nooutiliers", action="store_true", help="When this flag is set outilier events are not used in NN analysis")
 
