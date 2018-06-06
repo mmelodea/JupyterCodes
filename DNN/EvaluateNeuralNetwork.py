@@ -35,7 +35,7 @@ import itertools
 import math
 import ROOT
 import cPickle as pickle
-from UserFunctions import *
+
 
 # fix random seed for reproducibility
 seed = 7
@@ -619,7 +619,7 @@ def main(options):
   print 'nninputs: ', options.nninputs
   print 'split: ', options.split  
   print 'preproc: ', options.preproc
-  print 'layers: ', options.layers 
+  print 'topology: ', options.topology
   print 'neuron: ', options.neuron
   print 'nepochs: ', options.nepochs
   print 'patience: ', options.patience
@@ -639,7 +639,7 @@ def main(options):
 		     options.nninputs,
 		     options.split,
 		     options.preproc,
-		     options.layers,
+		     options.topology,
 		     options.neuron,
 		     options.nepochs,
 		     options.patience,
@@ -665,7 +665,7 @@ if __name__ == '__main__':
  parser.add_argument("--nninputs", nargs='+', help="Variables to be used as inputs for the NN")
  parser.add_argument("--split", type=float, default=0.5, help="Fraction of each MC to be used for train (the remaining is used for test)")
  parser.add_argument("--preproc", action="append", help="Pre-processing of inputs: none, normalize or scale")
- parser.add_argument("--layers", type=int, nargs='+', help="The topology of the NN. Ex: 21:13:8, a NN with 3 hidden layers")
+ parser.add_argument("--topology", type=int, nargs='+', help="The topology of the NN. Ex: 21:13:8, a NN with 3 hidden layers")
  parser.add_argument("--neuron", action="append", help="The type of neuron to be used: relu, sigmod or tanh")
  parser.add_argument("--nepochs", type=int, default=100, help="Number of epochs to train")
  parser.add_argument("--patience", type=int, default=50, help="Number of epochs to wait without improvement before stop training")
