@@ -1,0 +1,169 @@
+import argparse
+from ROOT import *
+from math import *
+from keras.models import load_model
+import datetime
+
+def creat_ccmodel(model_file, outFile):
+  #open file to store the model
+  outputFile = open(outFile+'.h','w')
+
+  #some seed to name functions
+  seed = int()
+  rdm = TRandom3(seed)
+  a = int(9*rdm.Rndm())
+  b = int(9*rdm.Rndm())
+  c = int(9*rdm.Rndm())
+
+  model = load_model(model_file)
+  
+  outputFile.write("///Keras Model for c++ usage\n")
+  outputFile.write("///Author: Miqueias Melo de Almeida\n\n")
+  
+  outputFile.write("///sigmoid output function\n")
+  outputFile.write("double sigmoid_%i%i%i(double z){\n" %(a,b,c))
+  outputFile.write("\treturn 1./(1+TMath::Exp(-z));\n")
+  outputFile.write("}\n\n")
+
+  outputFile.write("///max function (ReLU)\n")
+  outputFile.write("double relu_%i%i%i(double value){\n" %(a,b,c))
+  outputFile.write("\tdouble max_val = (value > 0)? value:0;\n")
+  outputFile.write("\treturn max_val;\n")
+  outputFile.write("}\n\n")
+
+  outputFile.write("///PReLU function\n")
+  outputFile.write("double prelu_%i%i%i(double slope, double value){\n" %(a,b,c))
+  outputFile.write("\tdouble max_val = (value > 0)? value:value*slope;\n")
+  outputFile.write("\treturn max_val;\n")
+  outputFile.write("}\n\n")
+
+
+  nlayers = len(model.layers)
+  ilayer = nlayers
+  layer_types = [-1 for i in range(nlayers)]
+  #creates each neuron-input function
+  outputFile.write("///Set of neuron functions with their respective weight and bias\n")
+  while( ilayer-1 >=0 ):
+    #g=model.layers[ilayer-1].get_config() #contains the weights and the bias
+    h=model.layers[ilayer-1].get_weights() #contains the weights and the bias
+    #print("Loading layer %i" % (ilayer-1))
+    #print (g)
+    #print (h)
+    #h[0][i][j] --> weights from i-esimo input in the j-esimo neuron, h[1][j] --> bias for each neuron
+  
+    layer_type = len(h)
+    layer_types[ilayer-1] = layer_type
+    layer_ninputs = len(h[0])
+    layer_nneurons = 1
+    if(layer_type == 2):
+      layer_nneurons = len(h[0][0])
+    ineuron = layer_nneurons-1
+    #print("Searching max absolute weight...")
+  
+    if(layer_type == 2):
+      outputFile.write("double l%i_func_%i%i%i(std::vector<double> &inputs, int neuron){\n" % (ilayer,a,b,c))
+      #outputFile.write("\tint n_inputs = inputs.size();\n")
+    else:
+      outputFile.write("double l%i_func_%i%i%i(int neuron){\n" % (ilayer,a,b,c))
+    
+    outputFile.write("\tdouble z = 0;\n")
+    outputFile.write("\tswitch(neuron){\n")
+    while( ineuron >=0 ): #look at each neuron (number of func/layer)
+      if(layer_type == 2):
+	outputFile.write("\t\tcase %i:\n" % (layer_nneurons-ineuron-1))
+      n_inputs = layer_ninputs-1
+      i_input = n_inputs
+      while( i_input >=0 ):
+	weight = 0
+	if(layer_type == 2):
+	  weight = h[0][n_inputs-i_input][layer_nneurons-ineuron-1]
+	  outputFile.write("\t\t\tz += %.10f*inputs[%i];\n" %(weight,n_inputs-i_input))
+	else:
+	  weight = h[0][n_inputs-i_input]
+	  outputFile.write("\t\tcase %i:\n" % (n_inputs-i_input))
+	  outputFile.write("\t\t\tz = %.10f;\n" % weight)
+	  outputFile.write("\t\tbreak;\n")
+	i_input -= 1
+      
+      if(layer_type == 2):
+	bias = h[1][layer_nneurons-ineuron-1]
+	outputFile.write("\t\t\tz += %.10f;\n" % bias)      
+	outputFile.write("\t\tbreak;\n")
+      ineuron -= 1
+    
+    outputFile.write("\t}\n")
+    outputFile.write("\n\treturn z;\n")
+    outputFile.write("}\n")
+    ilayer -= 1
+
+
+  #create the network archictecture
+  outputFile.write("\n\n")
+  for ilayer in range(len(model.layers)):
+    #g=layer.get_config()  #contains the network configuration
+    h=model.layers[ilayer].get_weights() #contains the weights and the bias
+    #print("Loading layer %i" % (ilayer))
+    #print (g)
+    #print (h)
+    #h[0][i][j] --> weights from i-esimo input in the j-esimo neuron, h[1][j] --> bias for each neuron
+  
+    layer_type = len(h)
+    layer_ninputs = len(h[0])
+    layer_nneurons = 1
+    if(layer_type == 2):
+      layer_nneurons = len(h[0][0])
+  
+    #the first hidden layer
+    if ilayer == 0:
+      outputFile.write("double model_%i%i%i(std::vector<double> &inputs){\n" % (a,b,c))
+      outputFile.write("\tstd::vector<double> l%i_neurons_z_%i%i%i;\n" % (ilayer+1,a,b,c))
+      outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_nneurons,ilayer+1))
+      if(layer_types[ilayer+1] == layer_type):
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( relu_%i%i%i(l%i_func_%i%i%i(inputs,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer+1))
+      else:
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( l%i_func_%i%i%i(inputs,l%i_n) );\n" % (ilayer+1,a,b,c,ilayer+1,a,b,c,ilayer+1))
+      outputFile.write("//------ end layer %i ------\n\n" % (ilayer+1))
+  
+  
+    #here's the complication (where out layer neurons appear)
+    if ilayer > 0 and ilayer < nlayers-1:
+      outputFile.write("\tstd::vector<double> l%i_neurons_z_%i%i%i;\n" % (ilayer+1,a,b,c))
+      if(layer_types[ilayer+1] == layer_type):	
+	outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_nneurons,ilayer+1))
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( relu_%i%i%i(l%i_func_%i%i%i(l%i_neurons_z_%i%i%i,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer,a,b,c,ilayer+1))
+      elif(layer_type == 1 and layer_types[ilayer+1] != layer_type):
+	outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_ninputs,ilayer+1))
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( prelu_%i%i%i(l%i_func_%i%i%i(l%i_n),l%i_neurons_z_%i%i%i[l%i_n]) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer+1,ilayer,a,b,c,ilayer+1))
+      else:
+	outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_ninputs,ilayer+1))
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( l%i_func_%i%i%i(l%i_neurons_z_%i%i%i,l%i_n) );\n" % (ilayer+1,a,b,c,ilayer+1,a,b,c,ilayer,a,b,c,ilayer+1))
+      outputFile.write("//------ end layer %i ------\n\n" % (ilayer+1))
+  
+  
+    #last layer (output)
+    if ilayer == nlayers-1:
+      outputFile.write("\n\treturn sigmoid_%i%i%i( l%i_func_%i%i%i(l%i_neurons_z_%i%i%i,0) );\n" % (a,b,c,ilayer+1,a,b,c,ilayer,a,b,c))
+      outputFile.write("}\n")
+    
+  outputFile.close()
+
+
+
+def main(options):
+  creat_ccmodel(options.inFile, options.outFile)
+  
+  
+  
+if __name__ == '__main__':
+
+ # Setup argument parser
+ parser = argparse.ArgumentParser()
+
+ # Add more arguments
+ parser.add_argument("--inFile", help="Name of txt input file with addresses of root files")
+ parser.add_argument("--outFile", help="Name for model output file")
+
+ # Parse default arguments
+ options = parser.parse_args()
+ main(options)
+    
