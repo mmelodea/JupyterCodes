@@ -43,11 +43,11 @@ np.random.seed(seed)
 
 
 #### function to organize events and splits data in train, test and real data sets ###
-def prepareSets(events, split_factor, use_vars, use_mcs, signal, no_outilier):
+def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutiliers):
   import numpy as np
   
   #### filter out outiliers if requested
-  if no_outilier:
+  if nooutiliers:
     print 'Cleaning outliers...'
     cleaned_events = {}
     for ik in events:
@@ -151,7 +151,7 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, no_outilier):
 
 
 ###------------------------------------------- Build, Train and Test NN ------------------------------------------------###
-def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, split_factor, pre_proc, layers, neuron, nepochs, wait_for, sbatch, opt, scale_train):
+def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, split_factor, pre_proc, layers, neuron, nepochs, wait_for, sbatch, opt, scale_train, nooutliers):
   #### creates a dictionary to hold informations
   outdict = {}
   outdict['infile'] = filein_name
@@ -165,6 +165,7 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   outdict['batchsize'] = sbatch
   outdict['minimizer'] = opt
   outdict['scaletrain'] = scale_train
+  outdict['nooutliers'] = nooutliers
 
   print '>>>>> Results will be saved there: ',results_folder
   if not os.path.isdir(results_folder):
@@ -195,7 +196,7 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   #prepare train set
   X = {}
   Y = {}
-  X, Y, Ymela, weights, scales = prepareSets(events, split_factor, use_vars, use_mcs, signal, no_outilier)
+  X, Y, Ymela, weights, scales = prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutiliers)
   outdict['trainsize'] = len(Y['train'])
   outdict['testsize'] = len(Y['test'])
 
@@ -612,19 +613,20 @@ def main(options):
 
   print '----- CONFIGURATION TO BE USED ------'
   print 'infile: ', options.infile
-  print 'resultsFolder: ', options.resultsfolder
-  print 'useKeys: ', options.keys
+  print 'resultsfolder: ', options.resultsfolder
+  print 'keys: ', options.keys
   print 'signal: ', options.signal
-  print 'useVars: ', options.nninputs
+  print 'nninputs: ', options.nninputs
   print 'split: ', options.split  
   print 'preproc: ', options.preproc
   print 'layers: ', options.layers 
   print 'neuron: ', options.neuron
   print 'nepochs: ', options.nepochs
   print 'patience: ', options.patience
-  print 'batchSize: ', options.batchsize
+  print 'batchsize: ', options.batchsize
   print 'optimizer: ', options.optimizer
-  print 'scaleTrain: ', options.scaletrain
+  print 'scaletrain: ', options.scaletrain
+  print 'nooutliers: ', options.nooutliers
 
   print '----- NN TRAINING STARTING ------'
   swatch = ROOT.TStopwatch()
@@ -643,7 +645,8 @@ def main(options):
 		     options.patience,
 		     options.batchsize,
 		     options.optimizer,
-		     options.scaletrain)
+		     options.scaletrain,
+                     options.nooutliers)
   
   print '----- NN TRAINING FINISHED ------'
   print 'Time ',swatch.RealTime()
@@ -669,7 +672,7 @@ if __name__ == '__main__':
  parser.add_argument("--batchsize", type=int, default=32, help="Size of the batch to be used in each update")
  parser.add_argument("--optimizer", action="append", help="Optimizer: sgd, adam, adagrad, adadelta, rmsprop")
  parser.add_argument("--scaletrain", action="append", help="Type of scaling to be used into the training: none, mc_weight (XS) or event_weight (individual weight)")
- parser.add_argument("--noOutilier", action="store_true", help="When this flag is set outilier events are not used in NN training but kept for testing")
+ parser.add_argument("--nooutiliers", action="store_true", help="When this flag is set outilier events are not used in NN analysis")
 
  # Parse default arguments
  options = parser.parse_args()
