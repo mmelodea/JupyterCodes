@@ -43,11 +43,11 @@ np.random.seed(seed)
 
 
 #### function to organize events and splits data in train, test and real data sets ###
-def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutiliers):
+def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
   import numpy as np
   
-  #### filter out outiliers if requested
-  if nooutiliers:
+  #### filter out outliers if requested
+  if nooutliers:
     print 'Cleaning outliers...'
     cleaned_events = {}
     for ik in events:
@@ -196,7 +196,7 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   #prepare train set
   X = {}
   Y = {}
-  X, Y, Ymela, weights, scales = prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutiliers)
+  X, Y, Ymela, weights, scales = prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers)
   outdict['trainsize'] = len(Y['train'])
   outdict['testsize'] = len(Y['test'])
 
@@ -560,18 +560,18 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
       cY = np.concatenate([Y_truth[isig],Y_truth[ik]])
       cW = np.concatenate([Weights[isig],Weights[ik]])
       Y_score = model.predict(cX)
-    fpr, tpr, thresholds = roc_curve(cY, Y_score, sample_weight=cW)
-    roc_auc = auc(fpr, tpr,reorder=True)
-    outdict['nn']['fullroc_'+isig+ik] = roc_auc
-    print '(DNN)  %s vs %s -- ROC AUC: %.2f' % (isig, ik, roc_auc)
-    pyp.plot(fpr, tpr, lw=1, color=colors[ic], label=('%s vs %s (%0.2f)' % (isig,ik,roc_auc)))
-    dY = np.concatenate([Y_mela[isig],Y_mela[ik]])
-    fpr, tpr, thresholds = roc_curve(cY, dY, sample_weight=cW)
-    roc_auc = auc(fpr, tpr,reorder=True)
-    outdict['mela']['fullroc_'+isig+ik] = roc_auc
-    print '(MELA) %s vs %s -- ROC AUC: %.2f' % (isig, ik, roc_auc)
-    pyp.plot(fpr, tpr, linestyle='--', lw=1, color=colors[ic], label=('%s vs %s (%0.2f)' % (isig,ik,roc_auc)))
-    ic += 1
+      fpr, tpr, thresholds = roc_curve(cY, Y_score, sample_weight=cW)
+      roc_auc = auc(fpr, tpr,reorder=True)
+      outdict['nn']['fullroc_'+isig+ik] = roc_auc
+      print '(DNN)  %s vs %s -- ROC AUC: %.2f' % (isig, ik, roc_auc)
+      pyp.plot(fpr, tpr, lw=1, color=colors[ic], label=('%s vs %s (%0.2f)' % (isig,ik,roc_auc)))
+      dY = np.concatenate([Y_mela[isig],Y_mela[ik]])
+      fpr, tpr, thresholds = roc_curve(cY, dY, sample_weight=cW)
+      roc_auc = auc(fpr, tpr,reorder=True)
+      outdict['mela']['fullroc_'+isig+ik] = roc_auc
+      print '(MELA) %s vs %s -- ROC AUC: %.2f' % (isig, ik, roc_auc)
+      pyp.plot(fpr, tpr, linestyle='--', lw=1, color=colors[ic], label=('%s vs %s (%0.2f)' % (isig,ik,roc_auc)))
+      ic += 1
     
   pyp.xlim([0.001, 1.0])
   pyp.ylim([0.001, 1.0])
@@ -600,16 +600,20 @@ def main(options):
     options.resultsfolder = 'results'
   if(options.nninputs == None):
     raise ValueError('Variables to be used not informed! Please state them!')
+  if(options.signal == None):
+    raise ValueError('Signal key(s) not specified. Please state them!')
   if(options.preproc == None):
     options.preproc = ['none']
-  if(options.layers == None):
-    options.preproc = [10]  
+  if(options.topology == None):
+    options.topology = [10]  
   if(options.neuron == None):
     options.neuron = ['relu']
   if(options.minimizer == None):
     options.minimizer = ['adam']
   if(options.scaletrain == None):
     options.scaletrain = ['none']
+  if(options.nooutliers == None):
+    options.nooutliers = False
 
   print '----- CONFIGURATION TO BE USED ------'
   print 'infile: ', options.infile
@@ -649,7 +653,7 @@ def main(options):
                      options.nooutliers)
   
   print '----- NN TRAINING FINISHED ------'
-  print 'Time ',swatch.RealTime()
+  print 'Time %.1f (seconds)' % swatch.RealTime()
   
   
 if __name__ == '__main__':
@@ -667,12 +671,12 @@ if __name__ == '__main__':
  parser.add_argument("--preproc", action="append", help="Pre-processing of inputs: none, normalize or scale")
  parser.add_argument("--topology", type=int, nargs='+', help="The topology of the NN. Ex: 21:13:8, a NN with 3 hidden layers")
  parser.add_argument("--neuron", action="append", help="The type of neuron to be used: relu, sigmod or tanh")
- parser.add_argument("--nepochs", type=int, default=100, help="Number of epochs to train")
- parser.add_argument("--patience", type=int, default=50, help="Number of epochs to wait without improvement before stop training")
+ parser.add_argument("--nepochs", type=int, default=1000, help="Number of epochs to train")
+ parser.add_argument("--patience", type=int, default=100, help="Number of epochs to wait without improvement before stop training")
  parser.add_argument("--batchsize", type=int, default=32, help="Size of the batch to be used in each update")
  parser.add_argument("--minimizer", action="append", help="Minimizer: sgd, adam, adagrad, adadelta, rmsprop")
  parser.add_argument("--scaletrain", action="append", help="Type of scaling to be used into the training: none, mc_weight (XS) or event_weight (individual weight)")
- parser.add_argument("--nooutiliers", action="store_true", help="When this flag is set outilier events are not used in NN analysis")
+ parser.add_argument("--nooutliers", action="store_true", help="When this flag is set outlier events are not used in NN analysis")
 
  # Parse default arguments
  options = parser.parse_args()
