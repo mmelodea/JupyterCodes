@@ -50,7 +50,7 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
   if nooutliers:
     print 'Cleaning outliers...'
     cleaned_events = {}
-    for ik in events:
+    for ik in use_mcs:
       cleaned_events[ik] = {}
       nevents = len(events[ik]['mc'])
       for ivar in events[ik]:
@@ -69,11 +69,7 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
   inputs['train'] = {}
   inputs['test'] = {}
         
-  for ik in events:
-    #use only the MCs of interest
-    if(use_mcs != None and (ik not in use_mcs)):
-      continue
-       
+  for ik in use_mcs:       
     inputs['train'][ik] = {}
     inputs['test'][ik] = {}       
     #print ik,' = ',nevents,' events'
