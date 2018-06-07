@@ -277,7 +277,6 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   pyp.xlabel('epoch')
   pyp.grid(True)
   pyp.savefig(results_folder+"/TrainingHistoryLoss.png")
-  outdict['history'] = history
 
   # load final best weights
   model.load_weights(filepath)
