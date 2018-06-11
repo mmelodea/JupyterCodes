@@ -100,7 +100,7 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
   fweights = {}
   fscales = {}
   fmela = {}
-  for iset in inputs:
+  for iset in ['train','test']:
     print '------ Set = ',iset,' ------'
     finputs[iset] = []
     flabels[iset] = []
@@ -109,7 +109,7 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
     fmela[iset] = []
     for ik in inputs[iset]:
       nevents = len(inputs[iset][ik]['mc'])
-      print ik,' = ',nevents
+      print '%s -- %i -- %.3f' % (ik,nevents,sum(inputs[iset][ik]['f_weight']))
       for iev in range(nevents):
         if(ik in signal):
           flabels[iset].append( 1 )
@@ -381,16 +381,16 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
                     dnn[iset]['bkg'] += vweight
     
         #computes s/sqrt(b), s_eff and s_eff*[s/(s+b)]
-        if(mela[iset]['sig'] != 0 or mela[iset]['bkg'] != 0):
+        if(mela[iset]['bkg'] != 0):
             mela_cuts[iset].append(icut)
             mela_sb[iset].append(mela[iset]['sig']/math.sqrt(mela[iset]['bkg']))
             mela_seff[iset].append(mela[iset]['sig']/sum(fweights[iset]['sig']))
-            mela_ep[iset].append( (mela[iset]['sig']/sum(fweights[iset]['sig']))*(mela[iset]['sig']/(mela[iset]['sig']+mela[iset]['bkg'])) )        
-        if(dnn[iset]['sig'] != 0 or dnn[iset]['bkg'] != 0):
+            mela_ep[iset].append( (mela[iset]['sig']/sum(fweights[iset]['sig']))*(mela[iset]['sig']/mela[iset]['bkg']) )        
+        if(dnn[iset]['bkg'] != 0):
             dnn_cuts[iset].append(icut)
             dnn_sb[iset].append(dnn[iset]['sig']/math.sqrt(dnn[iset]['bkg']))
             dnn_seff[iset].append(dnn[iset]['sig']/sum(fweights[iset]['sig']))
-            dnn_ep[iset].append( (dnn[iset]['sig']/sum(fweights[iset]['sig']))*(dnn[iset]['sig']/(dnn[iset]['sig']+dnn[iset]['bkg'])) )        
+            dnn_ep[iset].append( (dnn[iset]['sig']/sum(fweights[iset]['sig']))*(dnn[iset]['sig']/dnn[iset]['bkg']) )        
 
 
   for iset in ['train', 'test']:
@@ -398,12 +398,14 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
     print 'MELA('+iset+'): Max Seff*Purity = %.3f, S/sqrt(B) = %.3f, cut = %.3f' % (mela_ep[iset][mela_index], mela_sb[iset][mela_index], mela_cuts[iset][mela_index])
     outdict['mela'][iset+'ep'] = mela_ep[iset][mela_index]
     outdict['mela'][iset+'sb'] = mela_sb[iset][mela_index]
+    outdict['mela'][iset+'se'] = mela_seff[iset][mela_index]
     outdict['mela'][iset+'cut'] = mela_cuts[iset][mela_index]
     
     dnn_index = np.argmax(dnn_ep[iset])
     print 'DNN('+iset+'): Max Seff*Purity = %.3f, S/sqrt(B) = %.3f, cut = %.3f' % (dnn_ep[iset][dnn_index], dnn_sb[iset][dnn_index], dnn_cuts[iset][dnn_index])
     outdict['nn'][iset+'ep'] = dnn_ep[iset][dnn_index]
     outdict['nn'][iset+'sb'] = dnn_sb[iset][dnn_index]
+    outdict['nn'][iset+'se'] = dnn_seff[iset][dnn_index]
     outdict['nn'][iset+'cut'] = dnn_cuts[iset][dnn_index]
 
   #current metric we adopted
@@ -528,12 +530,14 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   Y_mela = {}
   X = {}
   Weights = {}
-  for ik in use_mcs:
+  for ik in events:
+    if ik == 'qqH3J':
+      continue
+    
     Y_truth[ik] = []
     X[ik] = []
     Weights[ik] = []
     Y_mela[ik] = []
-
     for iev in range(len(events[ik]['mc'])):
         variables = []
         for ivar in use_vars:
