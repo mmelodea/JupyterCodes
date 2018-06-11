@@ -2,7 +2,7 @@
 ###  This code runs over FormatROOTs.py dictionary                                     ###
 ###  It allows a fast Keras Dense NN building, training and testing                    ###
 ###  Author: Miqueias Melo de Almeida                                                  ###
-###  Data: 05/06/2018                                                                  ###
+###  Date: 08/06/2018                                                                  ###
 ###------------------------------------------------------------------------------------###
 
 #set adequate environment
@@ -49,104 +49,79 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
   #### filter out outliers if requested
   if nooutliers:
     print 'Cleaning outliers...'
-    cleaned_events = {}
-    for ik in use_mcs:
-      cleaned_events[ik] = {}
-      nevents = len(events[ik]['mc'])
-      for ivar in events[ik]:
-	cleaned_events[ik][ivar] = []
-	for iev in range(nevents):
-	  if not events[ik]['f_outlier'][iev]:
-	    cleaned_events[ik][ivar].append(events[ik][ivar][iev])
+    cleaned_events = []
+    nevents = len(events)
+    for iev in range(nevents):
+      if not events[iev]['f_outlier']:
+	cleaned_events.append(events[iev])
     #re-assign events content
     events = cleaned_events
+    
 
   ntrain = 0
   ntest = 0
   default_value = 0
-  #dictionary to contains train and test set
-  inputs = {}
-  inputs['train'] = {}
-  inputs['test'] = {}
-        
-  for ik in use_mcs:       
-    inputs['train'][ik] = {}
-    inputs['test'][ik] = {}       
-    #print ik,' = ',nevents,' events'
-    for ivar in events[ik]:
-      #prepare things for training set
-      inputs['train'][ik][ivar] = []
-      #prepare things for testing set
-      inputs['test'][ik][ivar] = []
-           
-      nevents = len(events[ik]['mc'])
-      for iev in range(nevents):
-        #---- fills the training set ----
-        if(iev < int(nevents*split_factor)):
-          inputs['train'][ik][ivar].append( events[ik][ivar][iev] )
-          #to count just once - gets the number of events got
-          if(ivar == 'mc'):
-            ntrain += 1
-        #---- fills the testing set -----
-        else:
-          inputs['test'][ik][ivar].append( events[ik][ivar][iev] )
-          #to count just once - gets the number of events got
-          if(ivar == 'mc'):
-            ntest += 1
+  #dictionaries to contain train and test set information
+  finputs = {'train':[],'test':[]}
+  flabels = {'train':[],'test':[]}
+  fweights = {'train':[],'test':[]}
+  fscales = {'train':[],'test':[]}
+  fmela = {'train':[],'test':[]}
+  nevents = {}
+  tnevents = {}
+  for ik in use_mcs:
+    nevents[ik] = 0
+    tnevents[ik] = 0
+  #counts the total number of events from a process
+  for iev in range(len(events)):
+    ik = events[iev]['mc']
+    tnevents[ik] += 1
+  #fills the training and test test dictionaries
+  for iev in range(len(events)):
+    ik = events[iev]['mc']
+    nevents[ik] += 1
+    #---- fills the training set ----
+    if(nevents[ik] < int(tnevents[ik]*split_factor)):
+      ntrain += 1
+      vvars = []
+      for ivar in use_vars:
+	vvars.append( events[iev][ivar] )
+      finputs['train'].append( vvars )
+      flabels['train'].append( (1 if ik in signal else 0) )
+      fweights['train'].append( events[iev]['f_weight'] )
+      fscales['train'].append( events[iev]['mc_sumweight'] )
+      fmela['train'].append( events[iev]['f_Djet_VAJHU'] )
+    #---- fills the testing set -----
+    else:
+      ntest += 1
+      vvars = []
+      for ivar in use_vars:
+	vvars.append( events[iev][ivar] )
+      finputs['test'].append( vvars )
+      flabels['test'].append( (1 if ik in signal else 0) )
+      fweights['test'].append( events[iev]['f_weight'] )
+      fscales['test'].append( events[iev]['mc_sumweight'] )
+      fmela['test'].append( events[iev]['f_Djet_VAJHU'] )
     
-  #prepare the final vectors
-  finputs = {}
-  flabels = {}
-  fweights = {}
-  fscales = {}
-  fmela = {}
+    
   for iset in ['train','test']:
-    print '------ Set = ',iset,' ------'
-    finputs[iset] = []
-    flabels[iset] = []
-    fweights[iset] = []
-    fscales[iset] = []
-    fmela[iset] = []
-    for ik in inputs[iset]:
-      nevents = len(inputs[iset][ik]['mc'])
-      print '%s -- %i -- %.3f' % (ik,nevents,sum(inputs[iset][ik]['f_weight']))
-      for iev in range(nevents):
-        if(ik in signal):
-          flabels[iset].append( 1 )
-        else:
-          flabels[iset].append( 0 )
-                    
-        fweights[iset].append( inputs[iset][ik]['f_weight'][iev] )
-        fscales[iset].append( inputs[iset][ik]['mc_sumweight'][iev] )
-        fmela[iset].append( inputs[iset][ik]['f_Djet_VAJHU'][iev] )
-        variables = []
-        for ivar in use_vars:
-          variables.append( inputs[iset][ik][ivar][iev] )
-        finputs[iset].append( variables )
     print ">>> Size of",iset," set  = ",len(finputs[iset])
 
     
   #converts to numpy array format (needed for Keras)
-  tinputs = np.asarray(finputs['train'])
-  tlabels = np.asarray(flabels['train'])
-  tweights = np.asarray(fweights['train'])
-  tscales = np.asarray(fscales['train'])
-  vinputs = np.asarray(finputs['test'])
-  vlabels = np.asarray(flabels['test'])
-  vweights = np.asarray(fweights['test'])
-  vscales = np.asarray(fscales['test'])
-    
-  #create final dictionaries
-  d_inputs = {'train':tinputs, 'test':vinputs}
-  d_labels = {'train':tlabels, 'test':vlabels}
-  d_mela = {'train':fmela['train'], 'test':fmela['test']}
-  d_weights = {'train':tweights, 'test':vweights}
-  d_scales = {'train':tscales, 'test':vscales}
+  d_inputs = {'train':np.asarray(finputs['train']), 'test':np.asarray(finputs['test'])}
+  d_labels = {'train':np.asarray(flabels['train']), 'test':np.asarray(flabels['test'])}
+  d_mela = {'train':np.asarray(fmela['train']), 'test':np.asarray(fmela['test'])}
+  d_weights = {'train':np.asarray(fweights['train']), 'test':np.asarray(fweights['test'])}
+  d_scales = {'train':np.asarray(fscales['train']), 'test':np.asarray(fscales['test'])}
     
   return d_inputs, d_labels, d_mela, d_weights, d_scales
 
 
-###------------------------------------------- Build, Train and Test NN ------------------------------------------------###
+
+####---------------------------------------------------------------------------------------------------------------------###
+####                                  MAIN FUNCTION - BUILDS AND TRAIN NEURAL NETWORK
+####------------------------------------------- Build, Train and Test NN ------------------------------------------------###
 def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, split_factor, pre_proc, layers, neuron, nepochs, wait_for, sbatch, opt, scale_train, nooutliers):
   #### creates a dictionary to hold informations
   outdict = {}
@@ -162,6 +137,7 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   outdict['minimizer'] = opt
   outdict['scaletrain'] = scale_train
   outdict['nooutliers'] = nooutliers
+  outdict['mcs'] = use_mcs
 
   print '>>>>> Results will be saved there: ',results_folder
   if not os.path.isdir(results_folder):
@@ -172,21 +148,24 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   events = pickle.load( filein )
   filein.close()
 
-  #print ''
-  print '----- Available MCs -----'
-  print events.keys()
-  print ''
-  if(use_mcs == None):
-    use_mcs = events.keys()
-
-  #shows events and statistics
-  outdict['mcs'] = use_mcs
+  ####------ retrieving statistic information and filter out MCs not required ----
+  nevents = {}
+  sweight = {}
+  tmp_events = []
   for ik in use_mcs:
-    nevents = len(events[ik]['mc'])
-    #print 'nevents = ',nevents,' :: ',events[ik]['mc_sumweight']
-    sumw = events[ik]['mc_sumweight'][0]
-    print '%s events: %i, normalized: %.4f' % (ik,nevents,sumw)
-    outdict['mcinfo'] = {ik:[nevents,sumw]}
+    nevents[ik] = 0
+    sweight[ik] = 0
+  for iev in range(len(events)):
+    ik = events[iev]['mc']
+    if(ik in use_mcs):
+      nevents[ik] += 1
+      sweight[ik] += events[iev]['f_weight']
+      tmp_events.append( events[iev] )
+  events = tmp_events
+  del tmp_events
+  for ik in use_mcs:
+    print '%s events: %i, normalized: %.4f' % (ik,nevents[ik],sweight[ik])
+    outdict['mcinfo'] = {ik:[nevents[ik],sweight[ik]]}
     
 
   #prepare train set
@@ -530,25 +509,20 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
   Y_mela = {}
   X = {}
   Weights = {}
-  for ik in events:
-    if ik == 'qqH3J':
-      continue
-    
+  for ik in use_mcs:    
     Y_truth[ik] = []
     X[ik] = []
     Weights[ik] = []
     Y_mela[ik] = []
-    for iev in range(len(events[ik]['mc'])):
+    for iev in range(len(events)):
+      if(events[iev]['mc'] == ik):
         variables = []
         for ivar in use_vars:
-            variables.append(events[ik][ivar][iev])
+            variables.append(events[iev][ivar])
         X[ik].append(variables)
-        if(ik in signal):
-            Y_truth[ik].append(1)
-        else:
-            Y_truth[ik].append(0)
-        Weights[ik].append(events[ik]['f_weight'][iev])
-        Y_mela[ik].append(events[ik]['f_Djet_VAJHU'][iev])
+        Y_truth[ik].append( (1 if ik in signal else 0) )
+        Weights[ik].append(events[iev]['f_weight'])
+        Y_mela[ik].append(events[iev]['f_Djet_VAJHU'])
                 
   ic = 0
   for isig in signal:
