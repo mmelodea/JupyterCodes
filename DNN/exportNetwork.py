@@ -33,10 +33,17 @@ def creat_ccmodel(model_file, outFile):
 
   outputFile.write("///PReLU function\n")
   outputFile.write("double prelu_%i%i%i(double slope, double value){\n" %(a,b,c))
-  outputFile.write("\tdouble max_val = (value > 0)? value:value*slope;\n")
+  outputFile.write("\tdouble max_val = (value > 0)? value:(value*slope);\n")
   outputFile.write("\treturn max_val;\n")
   outputFile.write("}\n\n")
 
+  outputFile.write("///SeLU function\n")
+  outputFile.write("double selu_%i%i%i(double value){\n" %(a,b,c))
+  outputFile.write("\tdouble alpha = 1.6732632423;\n")
+  outputFile.write("\tdouble scale = 1.0507009873;\n")
+  outputFile.write("\tdouble fvalue = (value >= 0)? (scale*value):(scale*alpha*(TMath::Exp(value)-1));\n")
+  outputFile.write("\treturn fvalue;\n")
+  outputFile.write("}\n\n")
 
   nlayers = len(model.layers)
   ilayer = nlayers
@@ -119,7 +126,8 @@ def creat_ccmodel(model_file, outFile):
       outputFile.write("\tstd::vector<double> l%i_neurons_z_%i%i%i;\n" % (ilayer+1,a,b,c))
       outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_nneurons,ilayer+1))
       if(layer_types[ilayer+1] == layer_type):
-	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( relu_%i%i%i(l%i_func_%i%i%i(inputs,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer+1))
+	#outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( relu_%i%i%i(l%i_func_%i%i%i(inputs,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer+1))
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( selu_%i%i%i(l%i_func_%i%i%i(inputs,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer+1))
       else:
 	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( l%i_func_%i%i%i(inputs,l%i_n) );\n" % (ilayer+1,a,b,c,ilayer+1,a,b,c,ilayer+1))
       outputFile.write("//------ end layer %i ------\n\n" % (ilayer+1))
@@ -130,7 +138,8 @@ def creat_ccmodel(model_file, outFile):
       outputFile.write("\tstd::vector<double> l%i_neurons_z_%i%i%i;\n" % (ilayer+1,a,b,c))
       if(layer_types[ilayer+1] == layer_type):	
 	outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_nneurons,ilayer+1))
-	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( relu_%i%i%i(l%i_func_%i%i%i(l%i_neurons_z_%i%i%i,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer,a,b,c,ilayer+1))
+	#outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( relu_%i%i%i(l%i_func_%i%i%i(l%i_neurons_z_%i%i%i,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer,a,b,c,ilayer+1))
+	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( selu_%i%i%i(l%i_func_%i%i%i(l%i_neurons_z_%i%i%i,l%i_n)) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer,a,b,c,ilayer+1))
       elif(layer_type == 1 and layer_types[ilayer+1] != layer_type):
 	outputFile.write("\tfor(int l%i_n=0; l%i_n<%i; ++l%i_n)\n" % (ilayer+1,ilayer+1,layer_ninputs,ilayer+1))
 	outputFile.write("\t\tl%i_neurons_z_%i%i%i.push_back( prelu_%i%i%i(l%i_func_%i%i%i(l%i_n),l%i_neurons_z_%i%i%i[l%i_n]) );\n" % (ilayer+1,a,b,c,a,b,c,ilayer+1,a,b,c,ilayer+1,ilayer,a,b,c,ilayer+1))
@@ -150,7 +159,7 @@ def creat_ccmodel(model_file, outFile):
 
 
 def main(options):
-  creat_ccmodel(options.inFile, options.outFile)
+  creat_ccmodel(options.infile, options.outfile)
   
   
   
@@ -160,8 +169,8 @@ if __name__ == '__main__':
  parser = argparse.ArgumentParser()
 
  # Add more arguments
- parser.add_argument("--inFile", help="Name of txt input file with addresses of root files")
- parser.add_argument("--outFile", help="Name for model output file")
+ parser.add_argument("--infile", help="Name of txt input file with addresses of root files")
+ parser.add_argument("--outfile", help="Name for model output file")
 
  # Parse default arguments
  options = parser.parse_args()
