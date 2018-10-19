@@ -43,7 +43,7 @@ np.random.seed(seed)
 
 
 #### function to organize events and splits data in train, test and real data sets ###
-def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
+def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers, augmentation):
   import numpy as np
   
   #### filter out outliers if requested
@@ -69,9 +69,15 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
   fmela = {'train':[],'test':[]}
   nevents = {}
   tnevents = {}
+  fsweights = {'train':{},'test':{}}
+  fsnevents = {'train':{},'test':{}}
   for ik in use_mcs:
     nevents[ik] = 0
     tnevents[ik] = 0
+    fsweights['train'][ik] = 0
+    fsweights['test'][ik] = 0
+    fsnevents['train'][ik] = 0
+    fsnevents['test'][ik] = 0
   #counts the total number of events from a process
   for iev in range(len(events)):
     ik = events[iev]['mc']
@@ -83,6 +89,8 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
     #---- fills the training set ----
     if(nevents[ik] < int(tnevents[ik]*split_factor)):
       ntrain += 1
+      fsnevents['train'][ik] += 1
+      fsweights['train'][ik] += events[iev]['f_weight']
       vvars = []
       for ivar in use_vars:
 	vvars.append( events[iev][ivar] )
@@ -94,6 +102,8 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
     #---- fills the testing set -----
     else:
       ntest += 1
+      fsnevents['test'][ik] += 1
+      fsweights['test'][ik] += events[iev]['f_weight']
       vvars = []
       for ivar in use_vars:
 	vvars.append( events[iev][ivar] )
@@ -103,9 +113,28 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
       fscales['test'].append( events[iev]['mc_sumweight'] )
       fmela['test'].append( events[iev]['f_Djet_VAJHU'] )
     
+
+  if(augmentation != -1):
+    rd = ROOT.TRandom3()
+    ntrains = len(flabels['train'])
+    for iaug in range(1,augmentation+1):
+      print 'Augmenting %ix' % iaug
+      for iev in range(ntrains):
+	vvars = []
+	for ivar in range(len(use_vars)):
+	  kf = rd.Gaus(1,0.1)
+	  svar = kf*finputs['train'][iev][ivar]	  
+	  vvars.append( svar )
+	finputs['train'].append( vvars )
+	flabels['train'].append( flabels['train'][iev] )
+	fweights['train'].append( fweights['train'][iev] )
+	fscales['train'].append( fscales['train'][iev] )
+	fmela['train'].append( fmela['train'][iev] )
     
   for iset in ['train','test']:
     print ">>> Size of",iset," set  = ",len(finputs[iset])
+    for ik in use_mcs:
+      print '%s events: %i, yields: %.4f' % (ik,fsnevents[iset][ik],fsweights[iset][ik])
 
     
   #converts to numpy array format (needed for Keras)
@@ -122,7 +151,7 @@ def prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers):
 ####---------------------------------------------------------------------------------------------------------------------###
 ####                                  MAIN FUNCTION - BUILDS AND TRAIN NEURAL NETWORK
 ####------------------------------------------- Build, Train and Test NN ------------------------------------------------###
-def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, split_factor, pre_proc, layers, neuron, nepochs, wait_for, sbatch, opt, scale_train, nooutliers):
+def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, split_factor, pre_proc, layers, neuron, nepochs, wait_for, sbatch, opt, scale_train, nooutliers, augmentation):
   #### creates a dictionary to hold informations
   outdict = {}
   outdict['infile'] = filein_name
@@ -163,15 +192,11 @@ def TrainNeuralNetwork(filein_name, results_folder, use_mcs, signal, use_vars, s
       tmp_events.append( events[iev] )
   events = tmp_events
   del tmp_events
-  for ik in use_mcs:
-    print '%s events: %i, normalized: %.4f' % (ik,nevents[ik],sweight[ik])
-    outdict['mcinfo'] = {ik:[nevents[ik],sweight[ik]]}
-    
 
   #prepare train set
   X = {}
   Y = {}
-  X, Y, Ymela, weights, scales = prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers)
+  X, Y, Ymela, weights, scales = prepareSets(events, split_factor, use_vars, use_mcs, signal, nooutliers, augmentation)
   outdict['trainsize'] = len(Y['train'])
   outdict['testsize'] = len(Y['test'])
 
@@ -604,6 +629,7 @@ def main(options):
   print 'minimizer: ', options.minimizer
   print 'scaletrain: ', options.scaletrain
   print 'nooutliers: ', options.nooutliers
+  print 'augmentation: ', options.augmentation
 
   print '----- NN TRAINING STARTING ------'
   swatch = ROOT.TStopwatch()
@@ -623,7 +649,8 @@ def main(options):
 		     options.batchsize,
 		     options.minimizer,
 		     options.scaletrain,
-                     options.nooutliers)
+                     options.nooutliers,
+                     options.augmentation)
   
   print '----- NN TRAINING FINISHED ------'
   print 'Time %.1f (seconds)' % swatch.RealTime()
@@ -649,7 +676,8 @@ if __name__ == '__main__':
  parser.add_argument("--batchsize", type=int, default=32, help="Size of the batch to be used in each update")
  parser.add_argument("--minimizer", action="append", help="Minimizer: sgd, adam, adagrad, adadelta, rmsprop")
  parser.add_argument("--scaletrain", action="append", help="Type of scaling to be used into the training: none, mc_weight (XS) or event_weight (individual weight)")
- parser.add_argument("--nooutliers", action="store_true", help="When this flag is set outlier events are not used in NN analysis")
+ parser.add_argument("--nooutliers", action="store_true", help="When this flag is set, outlier events are not used in NN analysis")
+ parser.add_argument("--augmentation", type=int, default=-1, help="Number of shifted replicas (random shifts are applied to variables - only MC training set)")
 
  # Parse default arguments
  options = parser.parse_args()

@@ -1,5 +1,5 @@
 ###------------------------------------------------------------------------------------###
-###  This code runs over ROOT files and creates a dictionary for the variables        ###
+###  This code runs over ROOT files and creates a dictionary for the variables         ###
 ###  Its dictionary is used then by EvaluateNeuralNetwork.py                           ###
 ###  Author: Miqueias Melo de Almeida                                                  ###
 ###  Date: 08/06/2018                                                                  ###
